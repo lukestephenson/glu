@@ -67,17 +67,20 @@ start()
   for file in $LIB_DIR/*.jar  
   do
     if [ -z "$JVM_CLASSPATH" ]; then
-      JVM_CLASSPATH="-classpath $file"
+      JVM_CLASSPATH=$file
     else
       JVM_CLASSPATH=$JVM_CLASSPATH:$file
     fi
   done
 
-  if [ -z "$JVM_CLASSPATH" ]; then
-    JVM_CLASSPATH="-classpath $JAVA_HOME/lib/tools.jar"
-  else
-    JVM_CLASSPATH=$JVM_CLASSPATH:$JAVA_HOME/lib/tools.jar
+  JVM_CLASSPATH=$JVM_CLASSPATH:$JAVA_HOME/lib/tools.jar
+
+  if [ `uname -o` = "Cygwin" ]
+  then
+    JVM_CLASSPATH=`cygpath -wp $JVM_CLASSPATH`
   fi
+
+  JVM_CLASSPATH="-classpath $JVM_CLASSPATH"
 
   # Java Tuning Options (heap & generations sizes; GC tuning)
   JVM_TUNING_OPTIONS="$JVM_SIZE $JVM_SIZE_NEW $JVM_SIZE_PERM $JVM_GC_TYPE $JVM_GC_OPTS $JVM_GC_LOG"

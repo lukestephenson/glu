@@ -160,9 +160,16 @@ if [ -z "$JVM_GC_LOG" ]; then
   
 fi
 
+CONF_DIR2=$CONF_DIR
+
+if [ `uname -o` = "Cygwin" ]
+then
+  CONF_DIR2=`cygpath -wa $CONF_DIR`
+fi
+
 # Log4J configuration
 if [ -z "$JVM_LOG4J" ]; then
-  JVM_LOG4J="-Dlog4j.configuration=file:$CONF_DIR/log4j.xml -Djava.util.logging.config.file=$CONF_DIR/logging.properties"
+  JVM_LOG4J="-Dlog4j.configuration=file:$CONF_DIR2/log4j.xml -Djava.util.logging.config.file=$CONF_DIR2/logging.properties"
 fi
 
 # Java I/O tmp dir
@@ -192,7 +199,7 @@ fi
 
 # Main Java Class arguments
 if [ -z "$MAIN_CLASS_ARGS" ]; then
-  MAIN_CLASS_ARGS="file:$CONF_DIR/agentConfig.properties"
+  MAIN_CLASS_ARGS="file:$CONF_DIR2/agentConfig.properties"
 fi
 
 
