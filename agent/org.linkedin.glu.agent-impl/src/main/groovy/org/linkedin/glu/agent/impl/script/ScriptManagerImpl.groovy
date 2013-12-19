@@ -332,7 +332,11 @@ def class ScriptManagerImpl implements ScriptManager
                                             agentContext: agentContext)
 
         // give a chance to the factory to "release" some resources
-        node.scriptDefinition.scriptFactory.destroyScript(scriptConfig)
+        // TODO Java doesn't release the file handle so this call barfs on windows which will not let a
+        // file be removed if there is still a handle to it.  Actually handle rather than ignoring the exception.
+        GroovyLangUtils.noException {
+          node.scriptDefinition.scriptFactory.destroyScript(scriptConfig)
+        }
 
         removeScriptNode(mountPoint)
 
