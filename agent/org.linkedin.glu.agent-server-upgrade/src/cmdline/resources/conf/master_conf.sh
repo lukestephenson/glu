@@ -105,6 +105,14 @@ fi
 mkdir -p $GLU_AGENT_APPS
 GLU_AGENT_APPS=`cd $GLU_AGENT_APPS; pwd`
 
+# Cywgin friendly variables
+if [ `uname -o` = "Cygwin" ]
+then
+  GLU_AGENT_APPS2=`cygpath -wa $GLU_AGENT_APPS`
+else 
+  GLU_AGENT_APPS2=$GLU_AGENT_APPS
+fi
+
 if [ -z "$GLU_AGENT_ZOOKEEPER_ROOT" ]; then
   GLU_AGENT_ZOOKEEPER_ROOT=/org/glu
 fi
@@ -152,9 +160,9 @@ fi
 # JVM GC activity logging settings ($LOG_DIR set in the ctl script)
 if [ -z "$JVM_GC_LOG" ]; then
   case "$JAVA_CMD_TYPE" in
-    'ibm' ) JVM_GC_LOG="-Xverbosegclog:$GC_LOG"
+    'ibm' ) JVM_GC_LOG="-Xverbosegclog:$GC_LOG2"
     	    ;;
-    'oracle' ) JVM_GC_LOG="-XX:+PrintGCDateStamps -Xloggc:$GC_LOG"
+    'oracle' ) JVM_GC_LOG="-XX:+PrintGCDateStamps -Xloggc:$GC_LOG2"
     	       ;;
   esac
   
@@ -174,12 +182,12 @@ fi
 
 # Java I/O tmp dir
 if [ -z "$JVM_TMP_DIR" ]; then
-  JVM_TMP_DIR="-Djava.io.tmpdir=$TMP_DIR"
+  JVM_TMP_DIR="-Djava.io.tmpdir=$TMP_DIR2"
 fi
 
 # Any additional JVM arguments
 if [ -z "$JVM_XTRA_ARGS" ]; then
-  JVM_XTRA_ARGS="-Dsun.security.pkcs11.enable-solaris=false -Djava.awt.headless=true $D_GLU_ZOOKEEPER $D_GLU_AGENT_NAME $D_GLU_AGENT_TAGS $D_GLU_AGENT_HOSTNAME_FACTORY $D_GLU_AGENT_PORT $D_GLU_AGENT_ADDRESS $D_GLU_AGENT_FABRIC -D$GLU_CONFIG_PREFIX.agent.homeDir=$GLU_AGENT_HOME -D$GLU_CONFIG_PREFIX.agent.apps=$GLU_AGENT_APPS -D$GLU_CONFIG_PREFIX.agent.zookeeper.root=$GLU_AGENT_ZOOKEEPER_ROOT"
+  JVM_XTRA_ARGS="-Dsun.security.pkcs11.enable-solaris=false -Djava.awt.headless=true $D_GLU_ZOOKEEPER $D_GLU_AGENT_NAME $D_GLU_AGENT_TAGS $D_GLU_AGENT_HOSTNAME_FACTORY $D_GLU_AGENT_PORT $D_GLU_AGENT_ADDRESS $D_GLU_AGENT_FABRIC -D$GLU_CONFIG_PREFIX.agent.homeDir=$GLU_AGENT_HOME2 -D$GLU_CONFIG_PREFIX.agent.apps=$GLU_AGENT_APPS2 -D$GLU_CONFIG_PREFIX.agent.zookeeper.root=$GLU_AGENT_ZOOKEEPER_ROOT"
 fi
 
 # Debug arguments to pass to the JVM (when starting with '-d' flag)

@@ -260,6 +260,20 @@ fi
 # Files referenced in the script
 GC_LOG=$LOG_DIR/gc.log
 
+# Cywgin friendly variables
+if [ `uname -o` = "Cygwin" ]
+then
+  LOG_DIR2=`cygpath -wa $LOG_DIR`
+  GC_LOG2=`cygpath -wa $GC_LOG`
+  TMP_DIR2=`cygpath -wa $TMP_DIR`
+  GLU_AGENT_HOME2=`cygpath -wa $GLU_AGENT_HOME`
+else 
+  LOG_DIR2=$LOG_DIR
+  GC_LOG2=$GC_LOG
+  TMP_DIR2=$TMP_DIR
+  GLU_AGENT_HOME2=$GLU_AGENT_HOME
+fi
+
 # get script options
 while getopts "dhkprz:n:t:f:c:" opt ; do
   case $opt in
