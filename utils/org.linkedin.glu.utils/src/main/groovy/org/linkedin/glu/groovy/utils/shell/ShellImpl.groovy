@@ -52,6 +52,8 @@ import javax.management.ObjectName
 import javax.management.remote.JMXConnectorFactory
 import javax.management.remote.JMXServiceURL
 import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardCopyOption
 import java.nio.file.LinkOption
 import java.nio.file.NoSuchFileException
 import java.nio.file.NotDirectoryException
@@ -61,6 +63,8 @@ import java.util.concurrent.TimeoutException
 import java.util.regex.Pattern
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.linkedin.glu.utils.jarchive.*
+
 
 /**
  * contains the utility methods for the shell
@@ -71,7 +75,6 @@ def class ShellImpl implements Shell
 {
   public static final String MODULE = ShellImpl.class.getName();
   public static final Logger log = LoggerFactory.getLogger(MODULE);
-
   public static final MemorySize FILE_BUFFER_SIZE = MemorySize.parse('1m')
 
   static {
@@ -168,26 +171,34 @@ def class ShellImpl implements Shell
 
   Resource untar(file, toDir)
   {
-    file = toResource(file)
-    toDir = toResource(toDir)
-    def command = "tar -xf ${file.file}"
+    if(isAgentOnWindows()){
+        file = toResource(file)
+        toDir = toResource(toDir)
+        //create dirs only when it does not exist
+        if(!toDir.exists()){
+            mkdirs(toDir)
+        }
 
-    def mimeTypes = getMimeTypes(file)
+        //get destination folder location
+        String destFolder = toDir.getFile().getPath()
+        JavaArchiveUtils.extractTarFile(file.file, destFolder)
 
-    if(mimeTypes.find { it == 'application/x-gzip'})
-    {
-      command = "gunzip -c ${file.file} | tar -xf -"
+    }else{
+       file = toResource(file)
+       toDir = toResource(toDir)
+       def command = "tar -xf ${file.file}"
+       def mimeTypes = getMimeTypes(file)
+       if(mimeTypes.find { it == 'application/x-gzip'})
+       {
+         command = "gunzip -c ${file.file} | tar -xf -"
+       }
+       if(mimeTypes.find { it == 'application/x-bzip2'})
+       {
+         command = "bunzip2 -c ${file.file} | tar -xf -"
+       }
+       mkdirs(toDir)
+       exec(command: command, pwd: toDir.file)
     }
-
-    if(mimeTypes.find { it == 'application/x-bzip2'})
-    {
-      command = "bunzip2 -c ${file.file} | tar -xf -"
-    }
-
-    mkdirs(toDir)
-
-    exec(command: command, pwd: toDir.file)
-
     return toDir
   }
 
@@ -1283,7 +1294,11 @@ def class ShellImpl implements Shell
    */
   Resource cp(from, to)
   {
-    copyOrMove(from, to, _copyAction)
+      if(isAgentOnWindows()){
+        copyOrMove(from, to, null)
+      }else{
+          copyOrMove(from, to, _copyAction)
+      }
   }
 
   /**
@@ -1294,7 +1309,11 @@ def class ShellImpl implements Shell
    */
   Resource mv(from, to)
   {
-    copyOrMove(from, to, _moveAction)
+      if(isAgentOnWindows()){
+        copyOrMove(from, to, null)
+      }else{
+          copyOrMove(from, to, _moveAction)
+      }
   }
 
   private def _copyAction = { Resource from, Resource to ->
@@ -1305,52 +1324,74 @@ def class ShellImpl implements Shell
     exec(command: ['mv', from.file.canonicalPath, to.file.canonicalPath])
   }
 
-  /**
-   * Copy or move... same code except ant action
-   *
-   * @return to as a resource
-   */
-  Resource copyOrMove(from, to, Closure action)
-  {
-    from = toResource(from)
-
-    if(!from.exists())
-      throw new FileNotFoundException(from.toString())
-
-    def toIsDirectory = to.toString().endsWith('/')
-    to = toResource(to)
-    toIsDirectory = toIsDirectory || to.isDirectory()
-
-    if(from.isDirectory())
+    /**
+     * Copy or move... same code except ant action
+     *
+     * @return to as a resource
+     */
+    Resource copyOrMove(from, to, Closure action)
     {
-      // handle case when 'from' is a directory
+        from = toResource(from)
 
-      // to is an existing file => error
-      // cp -R foo foo4
-      // cp: foo4: Not a directory
-      if(!toIsDirectory && to.exists())
-        throw new NotDirectoryException(to.toString())
+        if(!from.exists())
+            throw new FileNotFoundException(from.toString())
+
+        def toIsDirectory = to.toString().endsWith('/')
+        to = toResource(to)
+        toIsDirectory = toIsDirectory || to.isDirectory()
+
+        if(from.isDirectory())
+        {
+            // handle case when 'from' is a directory
+
+            // to is an existing file => error
+            // cp -R foo foo4
+            // cp: foo4: Not a directory
+            if(!toIsDirectory && to.exists())
+                throw new NotDirectoryException(to.toString())
+        }
+        else
+        {
+            // handle case when 'from' is a file
+
+            // to is a non existent directory => error
+            // cp foo4 foo8/
+            // cp: directory foo8 does not exist
+            if(toIsDirectory && !to.exists())
+                throw new FileNotFoundException(to.toString())
+        }
+
+        // to is an existent directory => copy inside directory
+        if(toIsDirectory)
+            to = to.createRelative(from.filename)
+
+        mkdirs(to.parentResource)
+
+        if(action != null){
+            action(from, to)
+        }else{
+            Path srcPath = from.getFile().toPath()
+            Path destPath = to.getFile().toPath()
+            Files.move(srcPath, destPath, StandardCopyOption.REPLACE_EXISTING)
+        }
+        return to
     }
-    else
-    {
-      // handle case when 'from' is a file
 
-      // to is a non existent directory => error
-      // cp foo4 foo8/
-      // cp: directory foo8 does not exist
-      if(toIsDirectory && !to.exists())
-        throw new FileNotFoundException(to.toString())
-    }
-
-    // to is an existent directory => copy inside directory
-    if(toIsDirectory)
-      to = to.createRelative(from.filename)
-
-    mkdirs(to.parentResource)
-
-    action(from, to)
-
-    return to
+ /**
+ * The isAgentOnWindows method checks if glu agent is running on Windows, if yes then it returns true else false.
+ * @return
+ */
+  private static boolean isAgentOnWindows(){
+      try{
+          String os = System.getProperties().get("os.name")
+          if (os != null && !os.isEmpty() && (os.contains("Windows") || os.contains("windows"))) {
+              return true
+          }else{
+              return false
+          }
+      }catch(Exception exp){
+        return false
+      }
   }
 }
 
