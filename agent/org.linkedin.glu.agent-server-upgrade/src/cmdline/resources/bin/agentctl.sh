@@ -77,7 +77,7 @@ start()
 
   if [ `uname -o` = "Cygwin" ]
   then
-    JVM_CLASSPATH=`cygpath -wp $JVM_CLASSPATH`
+    JVM_CLASSPATH=`cygpath -wp "$JVM_CLASSPATH"`
   fi
 
   JVM_CLASSPATH="-classpath $JVM_CLASSPATH"
@@ -112,7 +112,7 @@ start()
     echo "$JAVA_CMD $JAVA_OPTIONS $MAIN_CLASS $MAIN_CLASS_ARGS" >> $LOG_DIR/$APP_NAME.out
 
     # Start in background
-    $JAVA_CMD $JAVA_OPTIONS $MAIN_CLASS $MAIN_CLASS_ARGS >> $LOG_DIR/$APP_NAME.out 2>&1 &
+    "$JAVA_CMD" $JAVA_OPTIONS $MAIN_CLASS $MAIN_CLASS_ARGS >> $LOG_DIR/$APP_NAME.out 2>&1 &
     
     # Save PID
     echo $! > $PID_FILE

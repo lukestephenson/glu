@@ -18,7 +18,7 @@
 #
 
 if [ -z "$JAVA_CMD" ]; then
-  if [ -f $JAVA_HOME/bin/java ]; then
+  if [ -f "$JAVA_HOME/bin/java" ]; then
     JAVA_CMD=$JAVA_HOME/bin/java
   else
     JAVA_CMD=java
@@ -35,7 +35,7 @@ if [ "$JAVA_VER" -lt 17 ]; then
 fi
 
 if [ -z "$JAVA_CMD_TYPE" ]; then
-  FULLVERSION=$( $JAVA_CMD -fullversion 2>&1 )
+  FULLVERSION=$( "$JAVA_CMD" -fullversion 2>&1 )
   if [ -z "$(echo $FULLVERSION | grep IBM)" ]; then
     JAVA_CMD_TYPE=oracle
   else    
