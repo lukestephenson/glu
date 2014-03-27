@@ -203,7 +203,12 @@ get_pid()
     echo -1
   else
     PID=`cat $PID_FILE`
-    PS_STAT=`ps -p $PID -o'user,pid=' | tail -1 | awk '{print $2}'`
+    if [ `uname -o` = "Cygwin" ]
+    then
+      PS_STAT=`ps -p $PID | tail -1 | awk '{print $1}'`
+    else
+      PS_STAT=`ps -p $PID -o'user,pid=' | tail -1 | awk '{print $2}'`
+    fi
 
     case "$PS_STAT" in
       $PID  ) echo $PID
