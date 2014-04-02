@@ -53,6 +53,22 @@ class AgentsController extends ControllerBase
     running: [
       [planType: "transition", displayName: "Stop", state: "stopped"],
       [planType: "bounce", displayName: "Bounce"],
+      [
+        planAction: "reconfigure",
+        planType: "transition",
+        displayName: "Reconfigure",
+        states: ["installed", "running"],
+      ],
+    ],
+
+    stopped: [
+      [
+        planAction: "reconfigure",
+        planType: "transition",
+        displayName: "Reconfigure",
+        states: ["installed", "stopped"],
+      ],
+      [planType: "transition", displayName: "Start", state: "running"],
     ],
 
     // all other states
@@ -337,14 +353,20 @@ class AgentsController extends ControllerBase
       }
       request.system = system
 
-      def metadata = [*:params, agent: params.id, mountPoint: params.mountPoint]
-      ['controller', 'action', 'id', '__nvbe', '__role'].each { metadata.remove(it) }
+      def args = GluGroovyCollectionUtils.xorMap(params,
+                                                 ['controller', 'action', 'id', '__nvbe', '__role'])
 
-      params.system = system
-      params.stepType = params.stepType ?: IStep.Type.SEQUENTIAL
-      params.name = params.planName ?: "${params.displayName ?: params.planType.capitalize()} ${params.id}:${params.mountPoint}".toString()
+      // turn it into a collection (rather than an array)
+      if(args.states)
+        args.states = args.states.collect { it }
 
-      def plans = plannerService.computePlans(params, metadata)
+      def metadata = [*:args, agent: params.id, mountPoint: params.mountPoint]
+
+      args.system = system
+      args.stepType = params.stepType ?: IStep.Type.SEQUENTIAL
+      args.name = params.planName ?: "${params.displayName ?: params.planType.capitalize()} ${params.id}:${params.mountPoint}".toString()
+
+      def plans = plannerService.computePlans(args, metadata)
       if(plans)
       {
         session.plan = plans
@@ -352,14 +374,14 @@ class AgentsController extends ControllerBase
       }
       else
       {
-        flash.error = "No plan to execute ${params.planAction}"
-        redirect(controller: 'agents', action: 'view', id: params.id)
+        flash.error = "No plan to execute ${args.planAction}"
+        redirect(controller: 'agents', action: 'view', id: args.id)
       }
     }
     catch (Exception e)
     {
-      flashException("Error while moving to state ${params}", e)
-      redirect(action: 'view', id: params.id)
+      flashException("Error while moving to state ${args}", e)
+      redirect(action: 'view', id: args.id)
     }
   }
 
@@ -416,8 +438,9 @@ class AgentsController extends ControllerBase
             if(params.binaryOutput)
             {
               response.contentType = "application/octet-stream"
+              def filename = new File(URI.create("file:${params.location}")).name
               response.addHeader('Content-Disposition',
-                                 "attachment; filename=\"${new File(params.location).name.encodeAsURL()}\"")
+                                 "attachment; filename=\"${filename.encodeAsURL()}\"")
             }
             else
               response.contentType = "text/plain"
@@ -447,7 +470,9 @@ class AgentsController extends ControllerBase
                 render ''
             }
             else
+            {
               render(view: 'directory', model: [dir: res])
+            }
           }
         }
       }

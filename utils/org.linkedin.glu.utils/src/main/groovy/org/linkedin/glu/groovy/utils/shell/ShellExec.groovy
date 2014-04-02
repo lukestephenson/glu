@@ -66,10 +66,13 @@ class ShellExec
    */
   public static def buildCommandLine(def commandLine)
   {
+    String os = System.getProperties().get("os.name")
     if(commandLine instanceof List<String>)
       commandLine
+    else if (os != null && !os.isEmpty() && (os.contains("Windows") || os.contains("windows")))
+      ['cmd', '/c', commandLine.toString()]
     else
-      ['bash', '-c', commandLine.toString()]
+     ['bash', '-c', commandLine.toString()]
   }
 
   def exec()

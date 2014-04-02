@@ -81,8 +81,49 @@ public class ConsoleTagLib
     out << g.createLink(doAdjustArgs(args))
   }
 
+  /**
+   * "Replaces" g.form to account for fabric and make urls copy/paste friendly
+   */
+  def form = { args, body ->
+    out << g.form(args) {
+      def fabricName = request.fabric?.name
+      if(fabricName)
+        out << "<input type=\"hidden\" name=\"fabric\" value=\"${fabricName.encodeAsHTML()}\">"
+      out << body()
+    }
+  }
+
   def remoteFunction = { args ->
     out << g.remoteFunction(doAdjustArgs(args))
+  }
+
+  /**
+   * Split a path and link every elements in the path
+   */
+  def linkFilePath = { args ->
+    File file = args.file as File
+    File iFile = file?.parentFile
+
+    def res = []
+
+    while(iFile)
+    {
+      res << iFile
+      iFile = iFile.parentFile
+    }
+
+    res.reverse().each { File d ->
+      out << cl.link(title: "Go to directory [${d.name}]",
+                     controller: 'agents',
+                     id: args.agent,
+                     action: 'fileContent',
+                     params: [location: d.toURI().rawPath]) {
+        out << "${d.name}/".encodeAsHTML()
+      }
+    }
+
+    if(file?.parentFile)
+      out << file.name.encodeAsHTML()
   }
 
   /**
@@ -381,7 +422,7 @@ public class ConsoleTagLib
                           params: [
                           'session.systemFilter': "-${filter.toDSL()}",
                           ]) {
-              '&times;'
+              '<i class="icon-remove"> </i></cl:link>'
             }
             out << ']'
           }

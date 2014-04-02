@@ -18,7 +18,7 @@
 spec = [
   name: 'glu',
   group: 'org.pongasoft',
-  version: '5.3.1',
+  version: '5.4.1',
 
   versions: [
     jdk: '1.7',
@@ -27,10 +27,11 @@ spec = [
     groovy: '2.0.7',
     jetty: '8.1.10.v20130312', // '9.0.0.v20130308' (cannot use 9 -> requires jdk 1.7)
     utilsMisc: '2.0.2-SNAPSHOT',
-    utilsZookeeper: '2.0.0',
+    utilsZookeeper: '2.0.2',
     restlet: '2.1.2',
     sigar: '1.6.4',
-    slf4j: '1.6.2' // to be compatible with grails 2.2.1
+    slf4j: '1.6.2', // to be compatible with grails 2.2.1
+    sphinx: '1.2b3'
   ],
 
   // information about the build framework itself
@@ -60,6 +61,7 @@ spec.external = [
   hsqldb: "hsqldb:hsqldb:1.8.0.10",
   httpClient: "org.apache.httpcomponents:httpclient:4.2.3",
   ivy: 'org.apache.ivy:ivy:2.2.0',
+  jbcrypt: 'org.mindrot:jbcrypt:0.3m',
   jettyPackage: [
     group: "org.eclipse.jetty",
     name: "jetty-distribution",
