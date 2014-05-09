@@ -32,6 +32,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.TimeUnit
 
 /**
  * Because the logic of exec is quite complicated, it requires its own class
@@ -288,13 +290,27 @@ class ShellExec
       }
     }
 
-    // make sure that the thread complete properly
-    [StreamType.stdout, StreamType.stderr].each {
-      _processIO[it]?.future?.get()
-    }
+    log.info("Waiting for process to terminate")
 
     // we wait for the process to be done
     int exitValue = _process.waitFor()
+
+    log.info("Process has exited with {}", exitValue)
+
+    // make sure that the thread complete properly
+    // on windows, the output streams are not closed when a background process is launched by the process.
+    // Wait 1 second and report what input has been recieved until that point.
+    [StreamType.stdout, StreamType.stderr].each {
+      try {
+        _processIO[it]?.future?.get(1, TimeUnit.SECONDS)
+      } catch (TimeoutException ex) {
+        log.info("Timeout waiting for output stream {} to close", it)
+        // interrupt and cancel the future if it hasn't completed.
+        _processIO[it]?.future.cancel(true)
+      }
+    }
+
+    log.info("Output streams have been read")
 
     Map<StreamType, byte[]> bytes =
       GroovyCollectionsUtils.toMapKey([StreamType.stdout, StreamType.stderr]) {
