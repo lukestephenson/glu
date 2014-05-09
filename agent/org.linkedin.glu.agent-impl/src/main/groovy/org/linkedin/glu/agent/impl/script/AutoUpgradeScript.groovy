@@ -52,7 +52,8 @@ class AutoUpgradeScript
   def install = {
     log.info "Installing..."
 
-    agentRootDir = new File(System.getProperty('user.dir')).parentFile
+    // Not using user.dir as not reliable for agents run as a windows serice
+    agentRootDir = new File(System.getProperty('glu.agent.homeDir'))
 
     currentVersion = System.getProperty('org.linkedin.app.version')
 
@@ -167,7 +168,13 @@ class AutoUpgradeScript
 
   private asyncUpgrade(newVersion)
   {
-    shell.exec("${new File(agentRootDir, 'bin/async_upgradectl.sh')} ${newVersion} &")
+    def isWindows = System.getProperty('os.name').toLowerCase().startsWith('win')
+    log.info "Windows upgrade is ${isWindows}"
+    if (isWindows) {
+      shell.exec("${new File(agentRootDir, 'bin/async_upgradectl.bat')} ${newVersion}")
+    } else {
+      shell.exec("${new File(agentRootDir, 'bin/async_upgradectl.sh')} ${newVersion} &")
+    }
   }
 
   private boolean okToUpgrade()
