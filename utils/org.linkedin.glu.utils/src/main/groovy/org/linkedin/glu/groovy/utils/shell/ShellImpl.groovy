@@ -41,6 +41,7 @@ import org.linkedin.groovy.util.io.fs.FileSystemImpl
 import org.linkedin.groovy.util.net.GroovyNetUtils
 import org.linkedin.util.clock.Clock
 import org.linkedin.util.clock.SystemClock
+import org.linkedin.glu.utils.io.FileTailer
 import org.linkedin.util.io.PathUtils
 import org.linkedin.util.io.resource.Resource
 import org.linkedin.util.lang.MemorySize
@@ -911,6 +912,16 @@ def class ShellImpl implements Shell
     {
       if(args.maxLine?.toString() == '-1' || args.maxSize?.toString() == '-1')
         return new FileInputStream(file)
+
+      if (System.getProperty('os.name').toLowerCase().startsWith('win')) {
+        log.debug('Using windows FileTailer')
+        FileTailer tailer = new FileTailer();
+        int maxLine = -1
+        int maxSize = -1
+        if(args.maxLine) maxLine = Integer.parseInt(args.maxLine.toString())
+        if(args.maxSize) maxSize = MemorySize.parse(args.maxSize.toString()).sizeInBytes
+        return tailer.getTail(file, maxLine, maxSize)
+      }
 
       def commandLine = ['tail']
       if(args.maxLine)
