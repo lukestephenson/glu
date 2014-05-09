@@ -515,6 +515,11 @@ class AgentMain implements LifecycleListener, Configurable
   }
 
   def stop = {
+    shutdownNow()
+  }
+
+  def shutdownNow() 
+  {
     log.info 'Shutting down...'
 
     synchronized(_lock) {
